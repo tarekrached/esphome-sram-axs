@@ -1,0 +1,120 @@
+# Minimal SRAM AXS battery-monitor example.
+#
+# Flash this as-is first — the placeholder serials below are fine. Serial discovery
+# is always on: every awake AXS component whose serial isn't in the config prints
+# one "Discovered SRAM AXS serial=..." log line per boot, with a pack/coin-cell
+# label, voltage, and RSSI. Read your real serials out of `esphome logs`, replace
+# the placeholders, and run again — the second flash goes over-the-air and takes
+# seconds. Flash an ESP32 near where the bike lives.
+#
+# Every field this component publishes cites facts.yaml for its protocol basis.
+# battery_percent is called out again below: it's reported by AXS-pack components
+# only (rear derailleur, dropper post) — coin-cell components (shift controllers)
+# don't send a percentage at all. battery_status is their counterpart: a built-in
+# status string derived from battery_voltage against facts.yaml's CR2032 thresholds,
+# published only for coin-cell components.
+
+esphome:
+  name: sram-axs-monitor
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Pulls the component straight from GitHub — no local checkout needed. The default
+# `github://` layout expects the component under components/ at the repo root, which
+# is where this repo keeps it.
+external_components:
+  - source: github://tarekrached/esphome-sram-axs
+    components: [sram_axs]
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+api:
+
+# This block is what makes the second flash wireless: with it, `esphome run` finds
+# the device over wifi and pushes updates in seconds — no cable after the first flash.
+ota:
+  - platform: esphome
+
+# Optional, not needed for Home Assistant: uncomment to have the ESP32 serve its own
+# live status page at http://sram-axs-monitor.local — every sensor in this file,
+# updating in real time. Useful if you want battery readings without Home Assistant
+# (or before you've set it up).
+# web_server:
+#   version: 3
+
+logger:
+
+esp32_ble_tracker:
+
+# Only needed if you enable last_seen: below — the ESP32 has no wall clock of its
+# own, so last_seen requires a synced time source. Drop this block (and every
+# last_seen:/time_id: pair) if you don't want that entity.
+time:
+  - platform: sntp
+    id: sntp_time
+
+sram_axs:
+  # Placeholder serials — these are not real hardware. Replace with the decimal
+  # serial from each component's own advertised name.
+  #
+  # State survives reboots: the last decoded values (including last-seen) are
+  # restored from flash on boot, so a power blip or OTA doesn't blank the
+  # entities until the bike's next wake. On by default; `restore: false` on a
+  # device entry turns it off.
+  - serial: 1234567890
+    name: "Rear Derailleur"
+    battery_voltage:
+      name: "Rear Derailleur Battery Voltage"
+    # AXS-pack components only (facts.yaml manufacturer_data.battery_percent_packs).
+    battery_percent:
+      name: "Rear Derailleur Battery Percent"
+    rssi:
+      name: "Rear Derailleur Signal Strength"
+    last_seen:
+      name: "Rear Derailleur Last Seen"
+    time_id: sntp_time
+    restore: true  # default — see the reboot comment above
+    # Serial discovery is always on — unknown AXS advertisers get their one
+    # "Discovered..." log line per boot regardless of this flag. Set true to
+    # additionally hex-dump their raw payloads at DEBUG level; that's for protocol
+    # debugging, not something onboarding needs.
+    dump_unknown: false
+
+  - serial: 1234567891
+    name: "Dropper Post"
+    battery_voltage:
+      name: "Dropper Post Battery Voltage"
+    battery_percent:
+      name: "Dropper Post Battery Percent"
+    rssi:
+      name: "Dropper Post Signal Strength"
+
+  # Shift controllers are coin-cell (CR2032) devices: they don't report a battery
+  # percentage at all (manufacturer byte 11 comes back 0xFF, "not supported" —
+  # facts.yaml manufacturer_data.battery_percent_packs), so there's deliberately
+  # no battery_percent: key here. battery_status below is the coin-cell
+  # counterpart: a status string built in from facts.yaml
+  # timing.coin_alert_thresholds_mv (2.80 V / 2.75 V), published only for devices
+  # that carry the 0xFF sentinel — the official SRAM app only shows three coarse
+  # bands for these too, no percentage either. Below ~2.75 V these components have
+  # been observed to still light their wake LED but fail to transmit (the radio
+  # dies before the shifter does), so this status string is the meaningful
+  # "battery gauge" for a coin-cell component. battery_voltage is still worth
+  # keeping alongside it for the raw trend line.
+  #
+  # For automations keyed on the state string, the three exact values published
+  # are: "OK", "Low - replace soon", "Critical - radio failing" (plain ASCII
+  # hyphens throughout — no smart punctuation to trip a string match on).
+  - serial: 1234567892
+    name: "Shift Controller Left"
+    battery_voltage:
+      name: "Shift Controller Left Battery Voltage"
+    battery_status:
+      name: "Shift Controller Left Battery Status"
+    rssi:
+      name: "Shift Controller Left Signal Strength"

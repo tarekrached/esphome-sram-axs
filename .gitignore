@@ -1,0 +1,4 @@
+tmp/
+captures/
+__pycache__/
+CLAUDE.local.md

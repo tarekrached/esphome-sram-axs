@@ -1,0 +1,117 @@
+# Single home for load-bearing protocol numbers (L2 rule: prose points here; component code must agree).
+# confidence: confirmed = seen in our captures AND consistent across devices; hypothesis = one capture, unverified.
+# External evidence (2026-08-15): the two capture JSONs published in
+# https://github.com/ShannoG/home-assistant-sram-axs/tree/main/advertised-data (a dropper at 7479 mV and a
+# rear derailleur at 7523 mV, different fleet from ours) — cited inline where they confirm or weaken a field.
+
+ble:
+  service_uuid_16: 0xFE51        # Bluetooth SIG member UUID (SRAM) — confirmed
+  manufacturer_id: 0x0933        # company ID on all AXS adverts — confirmed
+
+manufacturer_data:               # 12 bytes standard (see advert_variant below)
+  prefix: "00 00"                # bytes 0-1, constant — confirmed
+  fw_version:                    # bytes 2-3 — CONFIRMED on 4/4 devices 2026-08-13: every component read
+    offset: 2                    # 01 01 before its firmware update and 01 02 after (RD, both controllers,
+    length: 2                    # Reverb — three separate update sessions). Encoding still unknown.
+                                 # Cross-reference 2026-08-18: the SRAM app's Component Detail reports
+                                 # "Firmware Version: 2.55.1" for a controller whose adverts read 01 02 —
+                                 # so these two bytes are not a direct major.minor of the app-facing
+                                 # version string; mapping between the two representations unknown.
+                                 # Same page also shows the component serial (matches the advertised
+                                 # serial, verified against the right controller 2026-08-18) and model
+                                 # code (ED-RIV-D1 for a Rival controller).
+  mid: "00 04 05"                # bytes 4-6, constant — confirmed
+  battery_mv:                    # bytes 7-8, uint16 little-endian — CONFIRMED: live wobble (±5 mV),
+    offset: 7                    # consistent across captures hours apart, 3 device classes land on
+    length: 2                    # 2S-pack (~8.1-8.2 V) and CR2032 (~2.7 V) exactly; sagged ~30 mV after a
+    endian: little               # radio-heavy firmware update, as a real battery would
+  byte9: null                    # NOT globally constant (revised 2026-08-15): 0x03 on all four of our
+                                 # components, but 0x02 in the dropper capture published in ShannoG/
+                                 # home-assistant-sram-axs advertised-data/ (their RD reads 0x03). That repo
+                                 # maps it as a device-type code, which our fleet contradicts (a Reverb AXS
+                                 # XPLR reading 0x03 would decode as a rear derailleur). Meaning unknown;
+                                 # candidates: component generation, or something else entirely.
+  byte10: 0x80                   # constant in our captures AND both external ShannoG captures — meaning unknown
+  battery_percent_packs:         # byte 11 — CONFIRMED (cross-fleet) 2026-08-15: battery percent for PACK
+    offset: 11                   # devices only. Our packs read 0x64=100 at 8.1-8.2 V (genuinely full);
+                                 # external corroboration from ShannoG advertised-data/ shows the byte
+                                 # DECLINING with voltage on partially discharged packs: dropper 0x13=19 at
+                                 # 7479 mV, RD 0x17=23 at 7523 mV. 0xFF on coin devices = "not supported"
+                                 # sentinel, coins report no percentage (ours, incl. near-dead cell).
+                                 # Own-fleet ESP32 anchor 2026-08-15: 0x64 constant on both packs concurrent
+                                 # with the official app reading "Battery Good" — note the app itself displays
+                                 # no percentage at all, only three bands (good / low >20% / charge-now <5%),
+                                 # so the broadcast carries strictly more resolution than the app UI.
+
+advert_variants:                 # three manufacturer-data forms observed; parsers must accept all
+  standard: 12                   # bytes, as documented above
+  extended_svc: "12-byte standard + 01 01 09 + the 9 service-data bytes + 01"  # 25 bytes; can be a device's ONLY
+                                 # advertising mode for a whole session (nameless, no separate service data) —
+                                 # serial MUST be parseable from the embedded blob
+  build_tag: "12-byte standard + 02 04 0a 02 37 01 + ASCII 'gdef20' + 64 02"   # 26 bytes; appeared post-fleet-update
+                                 # 2026-08-13 on BOTH pack devices with byte-identical tails (not per-device).
+                                 # Hypothesis: firmware build tag, git-describe style (g + short sha). Relevant
+                                 # to any update_available feature. REVISED 2026-08-15: not pack-exclusive —
+                                 # a coin controller emitted it too on ESP32 captures (post-update fw 01 02);
+                                 # earlier "coins never emit it" was an artifact of short coin bursts.
+  stack_framing: |               # CONFIRMED 2026-08-15 (ESP32 esp32_ble_tracker, all four components): the
+                                 # extended_svc and build_tag variants arrive as TWO manufacturer-data records
+                                 # under 0x0933 — the 12-byte standard record plus a separate 13-byte
+                                 # (01 01 09 + svcdata + 01) or 14-byte (02 04 0a 02 37 01 + tag + 02) record —
+                                 # where macOS CoreBluetooth had presented single 25/26-byte blobs. Same bytes,
+                                 # different AD-structure framing by the receiving stack. Parsers keyed on
+                                 # total record length must accept both presentations.
+
+service_data:                    # 9 bytes under 0xFE51, static per device within a capture
+  byte0: 0x0d                    # constant — confirmed
+  device_field: 1                # byte 1: 0x03 on our rear derailleur, 0x02 on our dropper + both controllers.
+                                 # Device-class candidate WEAKENED 2026-08-15: ShannoG's published dropper
+                                 # capture reads 0x03 here, so the byte does not track device class across
+                                 # fleets. Meaning unknown.
+  serial:                        #  bytes 2-5, uint32 little-endian = decimal serial in advertised name — confirmed on 4/4 devices
+    offset: 2
+    length: 4
+    endian: little
+  device_id: 6                   # byte 6 — REVISED 2026-08-13 (afternoon): NOT battery percent. A fresh
+                                 # 3.19V cell (was 2.71V) still read 10, unchanged 30+ min after the swap.
+                                 # Values: left ctrl 10, right ctrl 11, dropper 45, RD 50 — static always;
+                                 # adjacent L/R values suggest a device model/slot identifier. FURTHER
+                                 # WEAKENED 2026-08-15 by external captures: ShannoG's RD reads 0x24=36
+                                 # (ours 0x32=50) and their dropper 0x01 (ours 0x2d=45), so if this is an
+                                 # identifier it is model- or instance-level, not device-type-level.
+                                 # Testable: never changes for any device in any state.
+  byte7: 0x04                    # constant — confirmed (holds in both external ShannoG captures too)
+  byte8:                         # 0x81 (RD), 0x84 (dropper), 0x00 / 0x01 (controllers) — high bit set on
+                                 # pack devices only in observations so far; meaning unknown. Cross-fleet
+                                 # corroboration 2026-08-15: ShannoG's published captures read 0x81 on their
+                                 # RD and 0x84 on their dropper — same per-class values in an unrelated fleet,
+                                 # currently the best device-class discriminator in the payload
+    offset: 8
+
+timing:                          # five captures, 2026-08-13
+  wake_triggers: "AXS button press (confirmed); movement/shaking (confirmed). Shift-paddle clicks do NOT wake the radio (confirmed by controlled comparison 2026-08-13; re-confirmed 2026-08-15 by controlled single-click test on each paddle against a continuously-broadcasting canary device — zero controller adverts). Official app UI matches: RD's documented wake is 'Shake the bike'; controllers and dropper are 'Press AXS button' (and rolling the bike wakes only the RD, observed 2026-08-15)."
+  natural_window_pack_s: 320     # ~5 min 20 s both pack devices, measured to natural silence, no app interference (326 s RD, 318 s dropper)
+                                 # OPEN 2026-08-15: an RD broadcast 10+ min in one session during which two
+                                 # shift actuations occurred mid-window — actuation (which physically moves
+                                 # the RD) may re-trigger the wake timer, or the window varies; unresolved
+  natural_window_coin_s: 22      # ~20-24s across dying AND fresh cells — a device-class trait, not a
+                                 # low-battery symptom (confirmed by before/after battery-swap bursts)
+  power_on_is_radio_silent: true # battery insertion produces NO advertising; only button/movement wakes
+  variant_choice_varies: true    # same controller emitted only the 25-byte nameless extended variant in one
+                                 # session and only the named 12-byte standard form in the next; listeners
+                                 # must handle both, including extended-blob-only adverts with no service data
+  advert_rate: "multiple per second while awake"
+  app_silences_broadcast: true   # CONFIRMED, observed 3x: components stop advertising the moment the
+                                 # official app connects; a passive listener hears nothing during app sessions.
+                                 # NUANCED 2026-08-15 (ESP32 capture with app open): both packs went silent in
+                                 # near-lockstep ~50 s gaps (starting within 1 s of each other), while one coin
+                                 # controller kept emitting bare 12/13-byte mfr frames after its name + service
+                                 # -data announcements cut off — suppression may target scan responses/service
+                                 # data rather than all advertising, and is not always a total blackout
+  dfu_voltage_sag_mv:            # a firmware update visibly costs battery, measured same-day 2026-08-13:
+    pack: 30                     # RD pack 8148→8118 mV across its DFU
+    coin_fresh: 200              # fresh CR2032 3191→2990 mV across DFU (recovers with rest)
+    coin_dying: 56               # ~2.7V CR2032 2752→2696 mV — and the DFU still SUCCEEDED (SRAM's margins held)
+  coin_alert_thresholds_mv:      # monitoring guidance derived from observed behavior, not from SRAM docs:
+    warn: 2800                   # past the CR2032 discharge knee
+    critical: 2750               # at ~2.75V and below, wake-LED-without-advertising was observed repeatedly
