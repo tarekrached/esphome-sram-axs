@@ -25,7 +25,7 @@ esp32_ble_tracker:
 
 sram_axs:
   - serial: 1234567890        # the decimal number from your component's discovery
-    name: "Left Shifter"      # line — see "Finding your device serial numbers"
+    name: "Left Shifter"      # line: see "Finding your device serial numbers"
     battery_status:           # coin-cell components (shift controllers): "OK",
       name: "Left Shifter Battery Status"    # "Low - replace soon", "Critical - radio failing"
     battery_voltage:
@@ -35,7 +35,7 @@ sram_axs:
     name: "Rear Derailleur"
     battery_voltage:
       name: "Rear Derailleur Battery Voltage"
-    battery_percent:          # AXS-pack components only — coin-cell components report no percentage
+    battery_percent:          # AXS-pack components only: coin-cell components report no percentage
       name: "Rear Derailleur Battery Percent"
 ```
 
