@@ -27,9 +27,9 @@ constexpr uint8_t AXS_MFR_ID_HIGH = 0x09;
 constexpr uint8_t AXS_SERVICE_UUID_LOW = 0x51;
 constexpr uint8_t AXS_SERVICE_UUID_HIGH = 0xFE;
 
-// facts.yaml timing.coin_alert_thresholds_mv: CR2032 discharge-knee thresholds,
-// derived from observed behavior (wake-LED-without-advertising below ~2.75 V), not
-// from SRAM documentation. Integer mV, named after facts.yaml's own warn/critical
+// facts.yaml timing.coin_alert_thresholds_mv: CR2032 discharge-knee thresholds
+// (warn past the knee; critical a margin above the ~2.7 V floor where a dying cell
+// was still operating), not from SRAM documentation. Integer mV, named after warn/critical
 // keys, and compared with plain integer `>` below — no float thresholds, so there's
 // no float-precision surprise in a comparison against a value that only ever needs
 // to answer "above/below a fixed knee, once, per advert."
@@ -45,7 +45,7 @@ const char *coin_status_from_mv(uint16_t battery_mv) {
     return "OK";
   if (battery_mv > COIN_BATTERY_CRITICAL_MV)
     return "Low - replace soon";
-  return "Critical - radio failing";
+  return "Critical - replace now";
 }
 
 /// One discovery-line dedup entry per serial ever logged, remembering whether the
@@ -196,8 +196,8 @@ void SRAMAxsDevice::setup() {
 
   // One INFO line per device per boot, assembled piecewise like the discovery
   // line: only fields the blob actually holds — omitted, never placeholder-printed.
-  // Worst pre-strip case is "battery 65.53 V, Critical - radio failing, last seen
-  // 2106-02-07T06:28:15Z, " — 75 bytes plus NUL — so 96 can never truncate and
+  // Worst pre-strip case is "battery 65.53 V, Critical - replace now, last seen
+  // 2106-02-07T06:28:15Z, " — 73 bytes plus NUL — so 96 can never truncate and
   // the unclamped `pos` arithmetic is safe (same reasoning as the discovery line).
   char details[96];
   int pos = 0;

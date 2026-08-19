@@ -27,7 +27,7 @@ sram_axs:
   - serial: 1234567890        # the decimal number from your component's discovery
     name: "Left Shifter"      # line: see "Finding your device serial numbers"
     battery_status:           # coin-cell components (shift controllers): "OK",
-      name: "Left Shifter Battery Status"    # "Low - replace soon", "Critical - radio failing"
+      name: "Left Shifter Battery Status"    # "Low - replace soon", "Critical - replace now"
     battery_voltage:
       name: "Left Shifter Battery Voltage"
 
@@ -39,7 +39,7 @@ sram_axs:
       name: "Rear Derailleur Battery Percent"
 ```
 
-`battery_status` is the headline for coin-cell components: they broadcast no percentage (and the official SRAM app shows no percentages for anything, three coarse bands only), so the component derives a status string from their live voltage, with thresholds set where the hardware actually gives out: below ~2.75 V these components still light their wake LED but stop transmitting, i.e. the radio dies before the shifter does.
+`battery_status` is the headline for coin-cell components: they broadcast no percentage (and the official SRAM app shows no percentages for anything, three coarse bands only), so the component derives a status string from their live voltage, with thresholds set from observed CR2032 behavior: warn at 2.80 V, past the discharge knee, and critical at 2.75 V, a small margin above the ~2.7 V where a dying cell was still running.
 
 The full version with all entity types (RSSI, last-seen, battery status for coin devices), per-field caveats, and the verbose `dump_unknown` flag (hex-dumps raw payloads at DEBUG; for protocol debugging, not needed for finding serials) is [`example.yaml`](example.yaml).
 

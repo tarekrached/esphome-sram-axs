@@ -114,4 +114,8 @@ timing:                          # five captures, 2026-08-13
     coin_dying: 56               # ~2.7V CR2032 2752→2696 mV — and the DFU still SUCCEEDED (SRAM's margins held)
   coin_alert_thresholds_mv:      # monitoring guidance derived from observed behavior, not from SRAM docs:
     warn: 2800                   # past the CR2032 discharge knee
-    critical: 2750               # at ~2.75V and below, wake-LED-without-advertising was observed repeatedly
+    critical: 2750               # margin above the ~2.7V floor where a dying cell was still operating (see
+                                 # dfu_voltage_sag_mv.coin_dying). DEMOTED 2026-08-18: the earlier
+                                 # wake-LED-without-advertising observation at ~2.75V is no longer trusted as a
+                                 # low-battery signature — similar quiet presses occurred on fresh cells too;
+                                 # the controllers just occasionally miss a press

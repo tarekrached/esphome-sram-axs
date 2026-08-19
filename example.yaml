@@ -101,14 +101,14 @@ sram_axs:
   # counterpart: a status string built in from facts.yaml
   # timing.coin_alert_thresholds_mv (2.80 V / 2.75 V), published only for devices
   # that carry the 0xFF sentinel — the official SRAM app only shows three coarse
-  # bands for these too, no percentage either. Below ~2.75 V these components have
-  # been observed to still light their wake LED but fail to transmit (the radio
-  # dies before the shifter does), so this status string is the meaningful
-  # "battery gauge" for a coin-cell component. battery_voltage is still worth
+  # bands for these too, no percentage either, so this status string is the
+  # meaningful "battery gauge" for a coin-cell component (warn sits past the
+  # CR2032 discharge knee; critical a margin above the ~2.7 V floor where a
+  # dying cell was still observed operating). battery_voltage is still worth
   # keeping alongside it for the raw trend line.
   #
   # For automations keyed on the state string, the three exact values published
-  # are: "OK", "Low - replace soon", "Critical - radio failing" (plain ASCII
+  # are: "OK", "Low - replace soon", "Critical - replace now" (plain ASCII
   # hyphens throughout — no smart punctuation to trip a string match on).
   - serial: 1234567892
     name: "Shift Controller Left"
