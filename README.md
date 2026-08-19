@@ -1,8 +1,8 @@
 # esphome-sram-axs
 
-Battery levels from SRAM AXS (eTap) components in Home Assistant, decoded **on-device** by an ESP32 running ESPHome. No app, no pairing, no HA-Bluetooth stack required: AXS components broadcast their battery state in BLE advertisements whenever they're awake, and this component reads it out of the air.
+Battery levels from SRAM AXS (eTap) electronic-shifting components in Home Assistant, decoded **on-device** by an ESP32 running ESPHome. No app, no pairing, no HA-Bluetooth stack required: AXS components broadcast their battery state in BLE advertisements whenever they're awake, and this component reads it out of the air.
 
-**v0.1.0.** The protocol decode is done and documented (`docs/`), and the component is validated on hardware: it runs live against the author's bike, feeding a Home Assistant dashboard and a low-battery phone notification. The card below is that dashboard.
+**v0.1.1.** The protocol decode is done and documented (`docs/`), and the component is validated on hardware: it runs live against the author's bike, feeding a Home Assistant dashboard and a low-battery phone notification. The card below is that dashboard.
 
 <img src="docs/ha-axs-batteries.png" alt="Home Assistant tile card showing live SRAM AXS battery state: derailleur and dropper percent, shifter coin-cell statuses, and per-component last-seen times">
 
